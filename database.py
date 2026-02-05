@@ -1,55 +1,71 @@
 import os
-import asyncio
 import asyncpg
 import yaml
-from datetime import datetime, timedelta
-from typing import Optional, Any
+import aiosqlite
+from typing import Optional
 
-# Load config
-with open("config.yaml", "r") as f:
-    cfg = yaml.safe_load(f)
+# ---------- Load config safely ----------
+cfg = {}
+if os.path.exists("config.yaml"):
+    with open("config.yaml", "r") as f:
+        cfg = yaml.safe_load(f) or {}
 
-DATABASE_URL = os.getenv("DB_URL") or cfg["database"].get("url")
-SQLITE_FALLBACK = cfg["database"].get("sqlite_fallback")
+db_cfg = cfg.get("database", {})
+
+DATABASE_URL = os.getenv("DB_URL") or db_cfg.get("url")
+SQLITE_FALLBACK = db_cfg.get("sqlite_fallback", "sqlite:///escrow.db")
+ENV = os.getenv("ENV", "test")  # test | production
+
 
 class Database:
     def __init__(self):
         self.pool: Optional[asyncpg.pool.Pool] = None
+        self.sqlite: Optional[aiosqlite.Connection] = None
         self._url = DATABASE_URL or SQLITE_FALLBACK
         self._is_sqlite = self._url.startswith("sqlite")
 
     async def connect(self):
         if self._is_sqlite:
-            # For SQLite fallback we use aiosqlite via an adapter or sync. Keep simple:
-            raise RuntimeError("SQLite fallback requires separate adapter; configure Postgres in production.")
-        self.pool = await asyncpg.create_pool(dsn=self._url, min_size=1, max_size=10)
+            if ENV == "production":
+                raise RuntimeError(
+                    "SQLite is not allowed in production. Use PostgreSQL."
+                )
+
+            # ✅ SQLite for testing
+            self.sqlite = await aiosqlite.connect("escrow.db")
+            await self.sqlite.execute("PRAGMA foreign_keys = ON")
+            await self.sqlite.commit()
+            return
+
+        # ✅ PostgreSQL
+        self.pool = await asyncpg.create_pool(
+            dsn=self._url, min_size=1, max_size=10
+        )
 
     async def close(self):
         if self.pool:
             await self.pool.close()
+        if self.sqlite:
+            await self.sqlite.close()
 
-    async def fetchrow(self, query: str, *args):
-        async with self.pool.acquire() as conn:
-            return await conn.fetchrow(query, *args)
-
+    # ---------- Query helpers ----------
     async def fetch(self, query: str, *args):
+        if self.sqlite:
+            cursor = await self.sqlite.execute(query, args)
+            rows = await cursor.fetchall()
+            return rows
+
         async with self.pool.acquire() as conn:
             return await conn.fetch(query, *args)
 
     async def execute(self, query: str, *args):
+        if self.sqlite:
+            await self.sqlite.execute(query, args)
+            await self.sqlite.commit()
+            return
+
         async with self.pool.acquire() as conn:
             return await conn.execute(query, *args)
-
-    async def transaction(self):
-        if not self.pool:
-            raise RuntimeError("Pool not initialized")
-        return self.pool.acquire().__aenter__()  # usage: async with db.transaction() as conn:
-
-    # Helper: run a function inside a transaction with a connection
-    async def with_transaction(self, func):
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
-                return await func(conn)
 
 
 db = Database()
