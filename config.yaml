@@ -1,12 +1,11 @@
 # Put production values here or use environment variables (.env)
 # WARNING: Do NOT push your real token to public repos. Use env or secrets manager.
 bot:
-  token: "REPLACE_WITH_TELEGRAM_BOT_TOKEN"
-  log_group_id: -1001234567890  # Group chat id where logs are posted; negative for channels
-  admins:
-    - 123456789  # list of admin Telegram user IDs (integers)
+  token: "8460940483:AAEIPkOXZJGigbISEj-US7IyR06Op231L90"
+  log_group_id: -1003772083418  # Group chat id where logs are posted; negative for channels
+  admins: 8470654857  # list of admin Telegram user IDs (integers)
   fee_percent: 6
-  upi_id: "pwescrow@upi"
+  upi_id: "mr.kno@ptaxix"
 database:
   # Preferred: PostgreSQL connection string. If empty, fallback to local SQLite.
   url: "postgresql://postgres:postgres@db:5432/pwescrow"
