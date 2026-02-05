@@ -9,7 +9,7 @@ from typing import Optional, Any
 with open("config.yaml", "r") as f:
     cfg = yaml.safe_load(f)
 
-DATABASE_URL = os.getenv("DATABASE_URL") or cfg["database"].get("url")
+DATABASE_URL = os.getenv("DB_URL") or cfg["database"].get("url")
 SQLITE_FALLBACK = cfg["database"].get("sqlite_fallback")
 
 class Database:
