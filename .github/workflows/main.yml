@@ -1,0 +1,92 @@
+# GitHub Actions: Build -> Deploy (SSH) workflow
+# Trigger: push to main
+# Place this file at .github/workflows/deploy.yml
+name: CI & Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Run tests & lint (optional)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: (Optional) Run tests
+        run: |
+          # Add test command if you have tests:
+          # pytest -q
+          echo "No tests configured"
+
+  deploy:
+    name: Deploy to Server via SSH
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.8.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Ensure server in known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.SSH_PORT || '22' }}" -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy (git pull + docker-compose up)
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+        run: |
+          set -euo pipefail
+          echo "Deploying to ${SSH_USER}@${SSH_HOST}:${SSH_PORT}"
+          ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST} << 'EOF'
+            set -euo pipefail
+            # Adjust this path to where you keep the repo on the server
+            REPO_DIR=/srv/pw-escrow-bot
+
+            if [ ! -d "$REPO_DIR" ]; then
+              echo "Repo directory $REPO_DIR does not exist. Exiting."
+              exit 1
+            fi
+
+            cd "$REPO_DIR"
+
+            # Ensure we are on main and reset to remote
+            git fetch --all --prune
+            git reset --hard origin/main
+
+            # Optional: ensure .env exists and has correct runtime secrets (server-managed)
+            if [ ! -f .env ]; then
+              echo ".env file missing in $REPO_DIR. Please create it with runtime secrets."
+              exit 1
+            fi
+
+            # Pull images (if using remote images) and bring containers up
+            # Use `docker compose` (v2). If your system uses `docker-compose`, change accordingly.
+            docker compose pull || true
+            docker compose up -d --build
+
+            # Optional: cleanup
+            docker image prune -f || true
+
+            echo "Deploy finished at $(date -u)."
+          EOF
