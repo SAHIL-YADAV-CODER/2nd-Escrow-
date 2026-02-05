@@ -25,7 +25,8 @@ jobs:
 
       - name: Run bot (test)
         env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          DB_URL: ${{ secrets.DB_URL }}
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        DB_URL: sqlite:///escrow.db
+        ENV: test
         run: |
           python bot.py
