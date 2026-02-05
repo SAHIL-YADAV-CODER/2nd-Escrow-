@@ -1,0 +1,19 @@
+# Put production values here or use environment variables (.env)
+# WARNING: Do NOT push your real token to public repos. Use env or secrets manager.
+bot:
+  token: "REPLACE_WITH_TELEGRAM_BOT_TOKEN"
+  log_group_id: -1001234567890  # Group chat id where logs are posted; negative for channels
+  admins:
+    - 123456789  # list of admin Telegram user IDs (integers)
+  fee_percent: 6
+  upi_id: "pwescrow@upi"
+database:
+  # Preferred: PostgreSQL connection string. If empty, fallback to local SQLite.
+  url: "postgresql://postgres:postgres@db:5432/pwescrow"
+  sqlite_fallback: "sqlite:///./pwescrow.sqlite3"
+security:
+  action_token_ttl_seconds: 300  # seconds until action tokens expire
+  anti_double_click_window_ms: 1500
+ui:
+  brand: "PW Escrow"
+  dark_mode: true
