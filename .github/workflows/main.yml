@@ -24,9 +24,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run bot (test)
-        env:
-        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        DB_URL: sqlite:///escrow.db
-        ENV: test
-        run: |
-          python bot.py
+  env:
+    BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+    DB_URL: sqlite:///escrow.db
+  run: |
+    python bot.py
