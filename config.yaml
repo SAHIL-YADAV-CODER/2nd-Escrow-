@@ -9,7 +9,7 @@ bot:
 database:
   # Preferred: PostgreSQL connection string. If empty, fallback to local SQLite.
   url: "postgresql://postgres:postgres@db:5432/pwescrow"
-  sqlite_fallback: "sqlite:///./pwescrow.sqlite3"
+  sqlite_fallback: "sqlite:///escrow.db"
 security:
   action_token_ttl_seconds: 300  # seconds until action tokens expire
   anti_double_click_window_ms: 1500
