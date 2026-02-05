@@ -1,4 +1,4 @@
-name: Telegram Escrow Bot Test
+name: Telegram Escrow Bot – Test Workflow
 
 on:
   push:
@@ -10,22 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
+      # 3️⃣ Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run bot (test)
-  env:
-    BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-    DB_URL: sqlite:///escrow.db
-  run: |
-    python bot.py
+      # 4️⃣ Run bot (TEST MODE)
+      - name: Run Telegram bot (test)
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          DB_URL: sqlite:///escrow.db
+          ENV: test
+        run: |
+          echo "Starting Telegram Escrow Bot in TEST mode"
+          python bot.py
